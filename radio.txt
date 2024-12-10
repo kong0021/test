@@ -1,0 +1,191 @@
+import React, { Fragment, useState, ChangeEvent } from 'react';
+
+interface DataItem {
+  id: number;
+  title: string;
+}
+
+interface Data {
+  via: DataItem[];
+  references: DataItem[];
+  enclosures: DataItem[];
+}
+
+interface RadiosProps {
+  data: Data;
+  setData: React.Dispatch<React.SetStateAction<Data>>;
+}
+
+const Radios: React.FC<RadiosProps> = ({ data, setData }) => {
+  const [viaIsChecked, setViaIsChecked] = useState(false);
+  const [refIsChecked, setRefIsChecked] = useState(false);
+  const [encIsChecked, setEncIsChecked] = useState(false);
+
+  const { via, enclosures, references } = data;
+
+  const viaOnChange = () => {
+    setViaIsChecked(!viaIsChecked);
+    if (viaIsChecked) {
+      setData((prev) => ({ ...prev, via: [] }));
+    } else {
+      setData((prev) => ({ ...prev, via: [{ id: 1, title: '' }] }));
+    }
+  };
+
+  const refOnChange = () => {
+    setRefIsChecked(!refIsChecked);
+    if (refIsChecked) {
+      setData((prev) => ({ ...prev, references: [] }));
+    } else {
+      setData((prev) => ({ ...prev, references: [{ id: 1, title: '' }] }));
+    }
+  };
+
+  const encOnChange = () => {
+    setEncIsChecked(!encIsChecked);
+    if (encIsChecked) {
+      setData((prev) => ({ ...prev, enclosures: [] }));
+    } else {
+      setData((prev) => ({ ...prev, enclosures: [{ id: 1, title: '' }] }));
+    }
+  };
+
+  const addViaInputTag = (id: number) => {
+    setData((prev) => ({
+      ...prev,
+      via: [...prev.via, { id: id + 1, title: '' }],
+    }));
+  };
+
+  const addRefInputTag = (id: number) => {
+    setData((prev) => ({
+      ...prev,
+      references: [...prev.references, { id: id + 1, title: '' }],
+    }));
+  };
+
+  const addEncInputTag = (id: number) => {
+    setData((prev) => ({
+      ...prev,
+      enclosures: [...prev.enclosures, { id: id + 1, title: '' }],
+    }));
+  };
+
+  const removeViaInputTag = (index: number) => {
+    const viaItemRemoved = data.via.filter((_, idx) => idx !== index);
+    if (viaItemRemoved.length === 0) setViaIsChecked(false);
+    setData((prev) => ({ ...prev, via: viaItemRemoved }));
+  };
+
+  const removeRefInputTag = (index: number) => {
+    const refItemRemoved = data.references.filter((_, idx) => idx !== index);
+    if (refItemRemoved.length === 0) setRefIsChecked(false);
+    setData((prev) => ({ ...prev, references: refItemRemoved }));
+  };
+
+  const removeEncInputTag = (index: number) => {
+    const encItemRemoved = data.enclosures.filter((_, idx) => idx !== index);
+    if (encItemRemoved.length === 0) setEncIsChecked(false);
+    setData((prev) => ({ ...prev, enclosures: encItemRemoved }));
+  };
+
+  const handleViaTextInput = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+    const updatedVia = [...data.via];
+    updatedVia[index].title = e.target.value;
+    setData((prev) => ({ ...prev, via: updatedVia }));
+  };
+
+  const handleRefTextInput = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+    const updatedReferences = [...data.references];
+    updatedReferences[index].title = e.target.value;
+    setData((prev) => ({ ...prev, references: updatedReferences }));
+  };
+
+  const handleEncTextInput = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+    const updatedEnclosures = [...data.enclosures];
+    updatedEnclosures[index].title = e.target.value;
+    setData((prev) => ({ ...prev, enclosures: updatedEnclosures }));
+  };
+
+  return (
+    <Fragment>
+      <label className="sm:text-xl mt-7">Optional Items</label>
+      {/* VIA Radio Button */}
+      <div className="form-control block items-center text-xs my-1 sm:text-lg">
+        <label className="mb-2 mr-2">Do you have a VIA?</label>
+        <input
+          type="radio"
+          name="radio-1"
+          value="1"
+          checked={viaIsChecked}
+          onChange={viaOnChange}
+          className="radio radio-primary mx-2 radio-xs checked:bg-blue-500 sm:radio-lg sm:m-0"
+        />
+        Yes
+        <input
+          type="radio"
+          name="radio-1"
+          value="0"
+          checked={!viaIsChecked}
+          onChange={viaOnChange}
+          className="radio mx-2 radio-xs radio-primary checked:bg-red-500 sm:radio-lg"
+        />
+        No
+      </div>
+      {viaIsChecked && via.map((viaItem, index) => (
+        <div key={viaItem.id}>
+          <input
+            name="title"
+            value={viaItem.title}
+            onChange={(e) => handleViaTextInput(e, index)}
+            type="text"
+            placeholder="Enter The Via"
+          />
+          {via.length - 1 === index && via.length < 10 && (
+            <div>
+              <button onClick={() => addViaInputTag(viaItem.id)}>Add VIA</button>
+              <button onClick={() => removeViaInputTag(index)}>Remove VIA</button>
+            </div>
+          )}
+        </div>
+      ))}
+      {/* Similarly, render references and enclosures */}
+    </Fragment>
+  );
+};
+
+export default Radios;
+
+
+import React, { useState } from 'react';
+import Radios from './Radios'; // Adjust the path based on your file structure
+
+interface DataItem {
+  id: number;
+  title: string;
+}
+
+interface Data {
+  via: DataItem[];
+  references: DataItem[];
+  enclosures: DataItem[];
+}
+
+const App: React.FC = () => {
+  // State to manage data
+  const [data, setData] = useState<Data>({
+    via: [],
+    references: [],
+    enclosures: [],
+  });
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Optional Items Form</h1>
+      {/* Pass down the state and setter as props */}
+      <Radios data={data} setData={setData} />
+    </div>
+  );
+};
+
+export default App;
