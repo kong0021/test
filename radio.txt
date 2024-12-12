@@ -1,191 +1,1016 @@
-import React, { Fragment, useState, ChangeEvent } from 'react';
+import React, { useState, useEffect } from "react";
 
-interface DataItem {
-  id: number;
-  title: string;
-}
+// import { useSession } from "@/SessionContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import {
+    tinFormSchema,
+    TinFormSchema,
+  } from "@/components/TinCustomerForm/schema";
+import { CustomerIndexFormData } from "@/components/TinCustomerForm/types";
+import {
+    Form,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+    FormControl,
+} from "@/components/ui/form";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
-interface Data {
-  via: DataItem[];
-  references: DataItem[];
-  enclosures: DataItem[];
-}
+import { Card, CardContent } from "@/components/ui/card";
+import {
+    ID_TYPES,
+    COUNTRIES,
+    PASSPORT_COUNTRY_CODES,
+  } from "@/components/TinCustomerForm/constants";
 
-interface RadiosProps {
-  data: Data;
-  setData: React.Dispatch<React.SetStateAction<Data>>;
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
-const Radios: React.FC<RadiosProps> = ({ data, setData }) => {
-  const [viaIsChecked, setViaIsChecked] = useState(false);
-  const [refIsChecked, setRefIsChecked] = useState(false);
-  const [encIsChecked, setEncIsChecked] = useState(false);
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 
-  const { via, enclosures, references } = data;
+interface CustomerIndexFormProps {
+    onSubmit?: (data: CustomerIndexFormData) => void;
+    onChangeData?: () => void;
+    initialData?: Partial<CustomerIndexFormData>;
+    onSearch: (searchData:any) => void;
+  }
 
-  const viaOnChange = () => {
-    setViaIsChecked(!viaIsChecked);
-    if (viaIsChecked) {
-      setData((prev) => ({ ...prev, via: [] }));
-    } else {
-      setData((prev) => ({ ...prev, via: [{ id: 1, title: '' }] }));
+const CustomerIndex: React.FC<CustomerIndexFormProps> = ({
+    onSubmit,
+    onChangeData,
+    initialData,
+    onSearch,
+  }) => {
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
+    const form = useForm<TinFormSchema>({
+      resolver: zodResolver(tinFormSchema),
+      defaultValues: {
+        idType: initialData?.idType || "",
+        issuedCountry: initialData?.issuedCountry || "MY",
+        idNumber: initialData?.idNumber || "",
+      },
+      mode: "onChange",
+    });
+  
+    const idType = form.watch("idType");
+    const idNumber = form.watch("idNumber");
+    const issuedCountry = form.watch("issuedCountry");
+
+
+    useEffect(() => {
+      onChangeData(); 
+    }, [idType, issuedCountry, idNumber]);
+  
+    // useEffect(() => {
+    //   if (idType) {
+    //     const timer = setTimeout(() => {
+    //       console.log(
+    //         "Setting default values for issuedCountry and clearing other fields"
+    //       );
+    //       if (form.getValues("issuedCountry") !== "MY") {
+    //         form.setValue("issuedCountry", "MY", {
+    //           shouldValidate: true,
+    //           shouldDirty: true,
+    //           shouldTouch: true,
+    //         });
+    //       }
+    //       form.setValue("idNumber", "", {
+    //         shouldValidate: false,
+    //         shouldDirty: false,
+    //         shouldTouch: false,
+    //       });
+    //       form.clearErrors("idNumber");
+    //     }, 0);
+  
+    //     return () => clearTimeout(timer);
+    //   }
+    // }, [idType, form]);
+  
+    // useEffect(() => {
+    //   if (issuedCountry) {
+    //     const timer = setTimeout(() => {
+    //       form.setValue("idNumber", "", {
+    //         shouldValidate: false,
+    //         shouldDirty: false,
+    //         shouldTouch: false,
+    //       });
+    //       form.clearErrors("idNumber");
+    //     }, 0);
+  
+    //     return () => clearTimeout(timer);
+    //   }
+    // }, [issuedCountry, form]);
+
+    const handleClick = (submitType: string) => {
+      if(submitType === "search"){
+        onSearch({...searchData});
+      }
     }
-  };
+    const handleSubmit = async (values: TinFormSchema) => {
+      try {
+        setIsSubmitting(true);
+        if (onSubmit) {
+          await onSubmit(values);
+        }
+        console.log(values);
+      } catch (error) {
+        console.error("Form submission error:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+    return (
+      <Card className="w-full max-w-8xl mx-auto">
+        <CardContent className="pt-8 px-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="idType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ID Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select ID Type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ID_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {idType !== "" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="issuedCountry"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Issued Country</FormLabel>
+                          {[
+                            "NRIC",
+                            "MyTentera",
+                            "MyPR",
+                            "MyKas",
+                            // "oldBRN",
+                            // "newBRN",
+                          ].includes(idType) ? (
+                            <FormControl>
+                              <Input
+                                disabled={true}
+                                defaultValue={COUNTRIES[0].label}
+                              ></Input>
+                            </FormControl>
+                          ) : (
+                            <>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Country" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {COUNTRIES.map((country) => (
+                                    <SelectItem
+                                      key={country.value}
+                                      value={country.value}
+                                    >
+                                      {country.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </>
+                          )}
+                        </FormItem>
+                      )}
+                    />
+  
+                    <FormField
+                      control={form.control}
+                      name="idNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ID Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter ID Number"
+                              {...field}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (
+                                  ["NRIC", "MyTentera", "MyPR", "MyKas"].includes(
+                                    idType
+                                  )
+                                ) {
+                                  const numbersOnly = value.replace(/[^\d]/g, "");
+                                  field.onChange(numbersOnly.slice(0, 12));
+                                } else {
+                                  const alphanumeric = value.replace(
+                                    /[^a-zA-Z0-9-]/g,
+                                    ""
+                                  );
+                                  field.onChange(alphanumeric);
+                                }
+                              }}
+                              maxLength={
+                                ["NRIC", "MyTentera", "MyPR", "MyKas"].includes(
+                                  idType
+                                )
+                                  ? 12
+                                  : undefined
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mt-3 flex justify-end">
+              <Dialog>
+              <DialogTrigger asChild>
+              <Button
+                  className="bg-[#e60027] hover:bg-[#cc0022] text-white px-4 py-2"
+                  // disabled={
+                  //   isSubmitting ||
+                  //   !form.formState.isValid ||
+                  //   !idType ||
+                  //   (idType === "BRN"
+                  //     ? false
+                  //     : ["NRIC", "MyTentera", "MyPR", "MyKas"].includes(idType)
+                  //       ? idNumber.length < 12
+                  //       : PASSPORT_COUNTRY_CODES.includes(issuedCountry)
+                  //         ? !validator.isPassportNumber(idNumber, issuedCountry)
+                  //         : !idNumber)
+                  // }
+                >
+                  {isSubmitting ? "Searching..." : "Search"}
+                </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>OTP Authenthication</DialogTitle>
+          <DialogDescription>
+            Your code was sent to you via mobile number.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+                SecureTAC
+            </Label>
+            <InputOTP maxLength={6}>
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
 
-  const refOnChange = () => {
-    setRefIsChecked(!refIsChecked);
-    if (refIsChecked) {
-      setData((prev) => ({ ...prev, references: [] }));
-    } else {
-      setData((prev) => ({ ...prev, references: [{ id: 1, title: '' }] }));
-    }
-  };
-
-  const encOnChange = () => {
-    setEncIsChecked(!encIsChecked);
-    if (encIsChecked) {
-      setData((prev) => ({ ...prev, enclosures: [] }));
-    } else {
-      setData((prev) => ({ ...prev, enclosures: [{ id: 1, title: '' }] }));
-    }
-  };
-
-  const addViaInputTag = (id: number) => {
-    setData((prev) => ({
-      ...prev,
-      via: [...prev.via, { id: id + 1, title: '' }],
-    }));
-  };
-
-  const addRefInputTag = (id: number) => {
-    setData((prev) => ({
-      ...prev,
-      references: [...prev.references, { id: id + 1, title: '' }],
-    }));
-  };
-
-  const addEncInputTag = (id: number) => {
-    setData((prev) => ({
-      ...prev,
-      enclosures: [...prev.enclosures, { id: id + 1, title: '' }],
-    }));
-  };
-
-  const removeViaInputTag = (index: number) => {
-    const viaItemRemoved = data.via.filter((_, idx) => idx !== index);
-    if (viaItemRemoved.length === 0) setViaIsChecked(false);
-    setData((prev) => ({ ...prev, via: viaItemRemoved }));
-  };
-
-  const removeRefInputTag = (index: number) => {
-    const refItemRemoved = data.references.filter((_, idx) => idx !== index);
-    if (refItemRemoved.length === 0) setRefIsChecked(false);
-    setData((prev) => ({ ...prev, references: refItemRemoved }));
-  };
-
-  const removeEncInputTag = (index: number) => {
-    const encItemRemoved = data.enclosures.filter((_, idx) => idx !== index);
-    if (encItemRemoved.length === 0) setEncIsChecked(false);
-    setData((prev) => ({ ...prev, enclosures: encItemRemoved }));
-  };
-
-  const handleViaTextInput = (e: ChangeEvent<HTMLInputElement>, index: number) => {
-    const updatedVia = [...data.via];
-    updatedVia[index].title = e.target.value;
-    setData((prev) => ({ ...prev, via: updatedVia }));
-  };
-
-  const handleRefTextInput = (e: ChangeEvent<HTMLInputElement>, index: number) => {
-    const updatedReferences = [...data.references];
-    updatedReferences[index].title = e.target.value;
-    setData((prev) => ({ ...prev, references: updatedReferences }));
-  };
-
-  const handleEncTextInput = (e: ChangeEvent<HTMLInputElement>, index: number) => {
-    const updatedEnclosures = [...data.enclosures];
-    updatedEnclosures[index].title = e.target.value;
-    setData((prev) => ({ ...prev, enclosures: updatedEnclosures }));
-  };
-
-  return (
-    <Fragment>
-      <label className="sm:text-xl mt-7">Optional Items</label>
-      {/* VIA Radio Button */}
-      <div className="form-control block items-center text-xs my-1 sm:text-lg">
-        <label className="mb-2 mr-2">Do you have a VIA?</label>
-        <input
-          type="radio"
-          name="radio-1"
-          value="1"
-          checked={viaIsChecked}
-          onChange={viaOnChange}
-          className="radio radio-primary mx-2 radio-xs checked:bg-blue-500 sm:radio-lg sm:m-0"
-        />
-        Yes
-        <input
-          type="radio"
-          name="radio-1"
-          value="0"
-          checked={!viaIsChecked}
-          onChange={viaOnChange}
-          className="radio mx-2 radio-xs radio-primary checked:bg-red-500 sm:radio-lg"
-        />
-        No
-      </div>
-      {viaIsChecked && via.map((viaItem, index) => (
-        <div key={viaItem.id}>
-          <input
-            name="title"
-            value={viaItem.title}
-            onChange={(e) => handleViaTextInput(e, index)}
-            type="text"
-            placeholder="Enter The Via"
-          />
-          {via.length - 1 === index && via.length < 10 && (
-            <div>
-              <button onClick={() => addViaInputTag(viaItem.id)}>Add VIA</button>
-              <button onClick={() => removeViaInputTag(index)}>Remove VIA</button>
-            </div>
-          )}
+          </div>
         </div>
-      ))}
-      {/* Similarly, render references and enclosures */}
-    </Fragment>
-  );
+        <DialogFooter>
+          <Button type="submit"
+          value = "Submit 2"
+          className="bg-[#e60027] hover:bg-[#cc0022] text-white px-4 py-2"
+          >Confirm</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+                
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  export default CustomerIndex;
+
+import React from "react";
+import { useState } from "react";
+import { useSession } from "@/SessionContext";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import  CustomerIndex  from "@/components/TinCustomerForm/TinCustomerSearch";
+import { CustomerIndexFormData } from "@/components/TinCustomerForm/types";
+import  TinEntryForm  from "@/components/TinEntryForm/TinEntryForm";
+import { TinEntryFormData } from "@/components/TinEntryForm/types";
+import {
+    Dialog,
+    DialogTitle,
+    DialogHeader,
+    DialogFooter,
+    DialogContent,
+    DialogDescription,
+  } from "@/components/ui/dialog";
+
+
+
+
+const CustomerForm: React.FC = () => {
+    const [dialogNew, setDialogNew] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [customer, setCustomer] = useState<TinEntryFormData | null>(null);
+    const [searchData, setSearchData] = useState<CustomerIndexFormData | null>(null);
+
+    function getLastDigitString(number: number): number {
+        const numStr = number.toString();
+        return parseInt(numStr.slice(-1));
+      }
+    
+      const handleSearch = async (searchData: CustomerIndexFormData) => {
+        setCustomer(null);
+        setSearchData(null);
+    
+        switch (getLastDigitString(parseInt(searchData?.idNumber))) {
+          case 0: //new
+            setDialogNew(false);
+            setDialogOpen(true);
+            setSearchData(searchData);
+            break;
+          case 1: //new
+          case 2: //new
+            setDialogNew(true);
+            setDialogOpen(true);
+            setSearchData(searchData);
+            break;
+          case 3: //VALID   
+            { const ValidCustomer: TinEntryFormData = {
+              ...searchData,
+              malaysiaTIN: "IG 3243843798",
+              sstRegNumber1: "ABC123",
+              sstRegNumber2: "ABC345",
+              status: "Valid",
+              action: "View",
+            };
+            console.log("(ValidCustomer");
+            console.log({ ...searchData, ...ValidCustomer });
+            setCustomer(ValidCustomer);
+            break; }
+          case 4: //INVALID
+            { const InvalidCustomer: TinEntryFormData = {
+              ...searchData,
+              malaysiaTIN: "IG 3243843798",
+              sstRegNumber1: "ABC123",
+              sstRegNumber2: "ABC345",
+              status: "Invalid",
+              action: "View",
+            };
+            console.log("(InvalidCustomer");
+            console.log(InvalidCustomer);
+            setCustomer(InvalidCustomer);
+            break; }
+          case 5: //BLANK
+            { const BlankCustomer: TinEntryFormData = {
+              ...searchData,
+              malaysiaTIN: "",
+              sstRegNumber1: "",
+              sstRegNumber2: "",
+              status: "Blank",
+              action: "View",
+            };
+            console.log("(BlankCustomer");
+            console.log(BlankCustomer);
+            setCustomer(BlankCustomer);
+            break; }
+          case 6: //Pending
+          case 7: //error
+            { const newCustomer: TinEntryFormData = {
+              ...searchData,
+              malaysiaTIN: "IG 3243843798",
+              sstRegNumber1: "ABC123",
+              sstRegNumber2: "ABC345",
+              status: "Pending",
+              action: "View",
+            };  
+            console.log("(newCustomer");
+            console.log(newCustomer);
+            setCustomer(newCustomer);
+            break; }
+    
+          default: //error
+        }
+      };
+
+
+      const handleNewProceed = () => {
+        console.log("searchData:handleNewProceed");
+        console.log(searchData);
+    
+        if (searchData) {
+          const newCustomer: TinEntryFormData = {
+            ...searchData,
+            malaysiaTIN: "",
+            sstRegNumber1: "",
+            sstRegNumber2: "",
+            status: "none",
+            action: "Add",
+          };
+          setCustomer(newCustomer);
+          setDialogOpen(false);
+        }
+      };
+
+      const handleChange = () => {
+        setCustomer(null);
+        setSearchData(null);
+      };
+
+      
+      function submitForm(submitType: string)
+      {
+          switch (submitType)
+          {
+              case "Submit 1":
+                  console.log('Submit 1');
+                  break;
+              case "Submit 2":
+                  console.log('Submit 2');
+                  break;
+          }
+          return false;
+      }
+
+    return (
+    <>
+        <div className="flex h-screen bg-gray-100">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+          <div className="container mx-auto px-6 py-8">
+          <h1 className="text-3xl font-bold mb-4">Home Page</h1>
+            <CustomerIndex onSubmit={handleSearch} onChangeData={handleChange}/>
+            Tin Entry Form
+            {customer && <TinEntryForm initialData={customer} />}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alert!</DialogTitle>
+            <DialogDescription>
+              {dialogNew
+                ? "Customer profile does not exist. Please proceed to submit new customer profile."
+                : "Customer is a Non Bank customer or a Supplier entity. Please update TIN via GFMS system."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            {dialogNew ? (
+              <>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleNewProceed}
+                  className="bg-[#e60027] hover:bg-[#cc0022] text-white"
+                >
+                  Proceed
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={() => {
+                    setDialogOpen(false);
+                    handleBlockProceed();
+                  }}
+                  className="bg-[#e60027] hover:bg-[#cc0022] text-white"
+                >
+                  Ok
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+          </div>
+        </main>
+      </div>
+    </div>
+
+    </>
+ 
+    );
 };
 
-export default Radios;
+export default CustomerForm;
 
+"use client";
 
-import React, { useState } from 'react';
-import Radios from './Radios'; // Adjust the path based on your file structure
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormControl,
+} from "@/components/ui/form";
+import validator from "validator";
+import find from "@/../utils/find";
+import {
+  Status,
+  FormState,
+  TinEntryFormData,
+  Country,
+} from "@/components/TinEntryForm/types";
 
-interface DataItem {
-  id: number;
-  title: string;
+import { useForm } from "react-hook-form";
+import { useState, useEffect, useCallback, memo } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { tinFormSchema, TinFormSchema } from "@/components/TinEntryForm/schema";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  ID_TYPES,
+  COUNTRIES,
+  PASSPORT_COUNTRY_CODES,
+  STATUS_MESSAGES,
+} from "@/components/TinEntryForm/constants";
+import {
+  AlertCircle,
+  Check,
+  LoaderCircle,
+  RotateCcw,
+  SquarePen,
+} from "lucide-react";
+
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { getLastDigitString } from "@/../utils/misc";
+
+interface TinEntryFormProps {
+  onSubmit?: (data: TinEntryFormData) => void;
+  initialData?: Partial<TinEntryFormData>;
 }
 
-interface Data {
-  via: DataItem[];
-  references: DataItem[];
-  enclosures: DataItem[];
+interface FormFieldWrapperProps {
+  form: ReturnType<typeof useForm<TinFormSchema>>;
+  name: keyof TinFormSchema;
+  label: string;
+  readOnly?: boolean;
+  placeholder?: string;
+  maxLength?: number;
+  onChange?: (value: string) => void;
 }
 
-const App: React.FC = () => {
-  // State to manage data
-  const [data, setData] = useState<Data>({
-    via: [],
-    references: [],
-    enclosures: [],
+const getStatus = (status: Status): string => {
+  return STATUS_MESSAGES[status] || "";
+};
+const getCountry = (country: Country): string => {
+  return find(COUNTRIES, { value: country }).label || "";
+};
+
+const FormFieldWrapper = memo<FormFieldWrapperProps>(
+  ({ form, name, label, readOnly, placeholder, maxLength, onChange }) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            {readOnly ? (
+              <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                {(() => {
+                  switch (name) {
+                    case "status":
+                      return getStatus(field.value as Status) || "-";
+                    case "issuedCountry":
+                      return getCountry(field.value as string) || "-";
+                    default:
+                      return field.value || "-";
+                  }
+                })()}
+              </div>
+            ) : (
+              <Input
+                {...field}
+                placeholder={placeholder}
+                maxLength={maxLength}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  field.onChange(value);
+                  onChange?.(value);
+                }}
+              />
+            )}
+          </FormControl>
+          {!readOnly && <FormMessage />}
+        </FormItem>
+      )}
+    />
+  )
+);
+
+FormFieldWrapper.displayName = "FormFieldWrapper";
+
+export const TinEntryForm: React.FC<TinEntryFormProps> = ({
+  onSubmit,
+  initialData,
+}) => {
+  const [state, setState] = useState<FormState>("");
+  const [msgStatus, setMsgStatus] = useState<FormState>({});
+  const [modifyStatus, setModifyStatus] = useState<boolean>(
+    initialData?.action !== "Add"
+  );
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [submitted, setSubmitted] = useState<boolean>(false);
+
+  const form = useForm<TinFormSchema>({
+    resolver: zodResolver(tinFormSchema),
+    defaultValues: {
+      idType: initialData?.idType || "",
+      issuedCountry: initialData?.issuedCountry || "MY",
+      idNumber: initialData?.idNumber || "",
+      malaysiaTIN: initialData?.malaysiaTIN || "",
+      sstRegNumber1: initialData?.sstRegNumber1 || "",
+      sstRegNumber2: initialData?.sstRegNumber2 || "",
+      action: initialData?.action || "",
+      status: initialData?.status || "NONE",
+    },
+    mode: "onChange",
   });
 
+  const { idType, idNumber, issuedCountry, action, status } = form.watch();
+
+  const modify = useCallback(() => {
+    setState("Update ");
+    setModifyStatus(false);
+  }, []);
+
+  const submitForm = () => {
+    switch (getLastDigitString(parseInt(idNumber))) {
+      case 1: //new success
+        setMsgStatus({
+          title: "Success",
+          msg: "New Customer TIN Profile has been successfully submitted.",
+        });
+        setSubmitted(true);
+        setState("");
+        form.setValue("status", "Pending", { shouldValidate: true });
+        break;
+      case 2: //new fail
+        const exist =
+          "Customer TIN Profile already exist. Please perform Customer Search to get the latest TIN Status";
+        const newData =
+          "Add Customer TIN Profile submission failed. Please try again.";
+        setMsgStatus({
+          title: "Alert",
+          msg: exist,
+        });
+        break;
+      case 4: //INVALID success
+        setMsgStatus({
+          title: "Success",
+          msg: "Customer TIN Profile has been successfully updated.",
+        });
+        setSubmitted(true);
+        setState("");
+        form.setValue("status", "Pending", { shouldValidate: true });
+        break;
+      case 5: //new fail
+        setMsgStatus({
+          title: "Alert",
+          msg: "Update Customer TIN Profile submission failed. Please try again.",
+        });
+        break;
+      case 55: //BLANK success
+        setMsgStatus({
+          title: "Success",
+          msg: "Customer TIN Profile has been successfully updated.",
+        });
+        setSubmitted(true);
+        setState("");
+        form.setValue("status", "Pending", { shouldValidate: true });
+        break;
+      case 6: //Pending
+        setMsgStatus({
+          title: "Success",
+          msg: "Customer TIN Profile has been successfully updated.",
+        });
+        setSubmitted(true);
+        setState("");
+        form.setValue("status", "Pending", { shouldValidate: true });
+      case 7: //
+        break;
+
+      default: //error
+    }
+  };
+  const handleResetTinFields = useCallback(() => {
+    setMsgStatus({});
+    const fieldsToReset = [
+      "malaysiaTIN",
+      "sstRegNumber1",
+      "sstRegNumber2",
+    ] as const;
+    fieldsToReset.forEach((fieldName) => {
+      form.setValue(fieldName, initialData?.[fieldName] ?? "", {
+        shouldValidate: true,
+      });
+    });
+  }, [initialData, form]);
+
+  useEffect(() => {
+    if (initialData) {
+      Object.entries(initialData).forEach(([key, value]) => {
+        if (value) {
+          form.setValue(key as keyof TinFormSchema, value, {
+            shouldValidate: true,
+          });
+        }
+      });
+      setIsLoading(false);
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    if (
+      idType &&
+      ["NRIC", "MyTentera", "MyPR", "MyKas", "oldBRN", "newBRN"].includes(
+        idType
+      )
+    ) {
+      form.setValue("issuedCountry", "MY", { shouldValidate: true });
+    }
+  }, [idType, form]);
+
+  const getDefaultState = useCallback((action: string): FormState => {
+    switch (action) {
+      case "Add":
+        return "Add ";
+      case "Update":
+        return "Update ";
+      default:
+        return "";
+    }
+  }, []);
+
+  useEffect(() => {
+    setState(getDefaultState(action));
+  }, [action, getDefaultState]);
+
+  const isFormValid = useCallback(() => {
+    if (!form.formState.isValid || !idType || isSubmitting) return false;
+
+    if (idType === "BRN") return true;
+
+    if (["NRIC", "MyTentera", "MyPR", "MyKas"].includes(idType)) {
+      return idNumber.length >= 12;
+    }
+
+    if (PASSPORT_COUNTRY_CODES.includes(issuedCountry)) {
+      return validator.isPassportNumber(idNumber, issuedCountry);
+    }
+
+    return Boolean(idNumber);
+  }, [form.formState.isValid, idType, isSubmitting, idNumber, issuedCountry]);
+
+  const handleSubmit = async (values: TinFormSchema) => {
+    try {
+      setIsSubmitting(true);
+      if (onSubmit) {
+        await onSubmit(values);
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+      form.setError("root", {
+        type: "submit",
+        message: "An error occurred while submitting the form",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderButtons = useCallback(() => {
+    if (!modifyStatus && status !== "Valid" && !submitted) {
+      return (
+        <>
+          <Button
+            onClick={handleResetTinFields}
+            className="bg-[#e60027] hover:bg-[#cc0022] text-white px-4 py-2 mr-2"
+            type="button"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset
+          </Button>
+          <Button
+            type="submit"
+            className="bg-[#e60027] hover:bg-[#cc0022] text-white px-4 py-2"
+            onClick={submitForm}
+            // disabled={!isFormValid()}
+            disabled={false}
+          >
+            {isSubmitting ? (
+              <>
+                <LoaderCircle className="w-4 h-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Submit
+              </>
+            )}
+          </Button>
+        </>
+      );
+    }
+
+    if (modifyStatus && status !== "Valid" && !submitted) {
+      return (
+        <Button
+          onClick={modify}
+          className="bg-[#e60027] hover:bg-[#cc0022] text-white px-4 py-2"
+          type="button"
+        >
+          <SquarePen className="w-4 h-4 mr-2" />
+          Modify
+        </Button>
+      );
+    }
+
+    return null;
+  }, [
+    modifyStatus,
+    status,
+    isSubmitting,
+    isFormValid,
+    handleResetTinFields,
+    modify,
+    submitted,
+  ]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoaderCircle className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+  const isEmpty = (obj) => {
+    return obj === null || obj === undefined || Object.keys(obj).length === 0;
+  };
+  const gotMsg = () => {
+    if (!isEmpty(msgStatus)) {
+      const successIcon = msgStatus?.title === "Success";
+      console.log("successIcon:" + successIcon);
+
+      return (
+        <Alert
+          variant={msgStatus?.title === "Success" ? "success" : "destructive"}
+        >
+          {successIcon ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          {/* component ? ): (<Check className="h-4 w-4" />) */}
+          <AlertTitle>{msgStatus.title}</AlertTitle>
+          <AlertDescription>{msgStatus.msg}</AlertDescription>
+        </Alert>
+      );
+    }
+    return <></>;
+  };
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Optional Items Form</h1>
-      {/* Pass down the state and setter as props */}
-      <Radios data={data} setData={setData} />
-    </div>
+    <Card className="mt-3 w-full max-w-8xl mx-auto">
+      <CardContent className="pt-8 px-8">
+        <h2 className="text-xl font-bold mb-2">{state} Customer TIN Profile</h2>
+        {gotMsg()}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <FormFieldWrapper
+                form={form}
+                name="idType"
+                label="ID Type"
+                readOnly={true}
+              />
+
+              {idType !== "" && (
+                <>
+                  <FormFieldWrapper
+                    form={form}
+                    name="issuedCountry"
+                    label="Issued Country"
+                    readOnly={true}
+                  />
+
+                  <FormFieldWrapper
+                    form={form}
+                    name="idNumber"
+                    label="ID Number"
+                    readOnly={true}
+                  />
+
+                  <FormFieldWrapper
+                    form={form}
+                    name="malaysiaTIN"
+                    label="Malaysia TIN"
+                    readOnly={modifyStatus}
+                    placeholder="Enter Malaysia TIN"
+                    maxLength={13}
+                    onChange={(value) => value.replace(/[^a-zA-Z0-9-]/g, "")}
+                  />
+
+                  <FormFieldWrapper
+                    form={form}
+                    name="sstRegNumber1"
+                    label="SST Registration Number 1"
+                    readOnly={modifyStatus}
+                    placeholder="Enter SST Registration Number 1"
+                    maxLength={15}
+                  />
+
+                  <FormFieldWrapper
+                    form={form}
+                    name="sstRegNumber2"
+                    label="SST Registration Number 2"
+                    readOnly={modifyStatus}
+                    placeholder="Enter SST Registration Number 2"
+                    maxLength={15}
+                  />
+
+                  {modifyStatus && (
+                    <FormFieldWrapper
+                      form={form}
+                      name="status"
+                      label="TIN Validation Status"
+                      readOnly={true}
+                    />
+                  )}
+                  {submitted && msgStatus?.title === "Success" ? (
+                    <FormFieldWrapper
+                      form={form}
+                      name="status"
+                      label="TIN Validation Status"
+                      readOnly={true}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end space-x-4">
+              {renderButtons()}
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };
 
-export default App;
+export default TinEntryForm;
